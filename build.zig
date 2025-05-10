@@ -102,8 +102,11 @@ pub fn build(b: *std.Build) void {
     // const run_lib_unit_tests = b.addRunArtifact(q1_1_unit_tests);
 
     const q1_1_unit_tests = b.addTest(.{
+        .name = "1.1_is_unique_test",
         .root_module = q1_1,
     });
+
+    b.installArtifact(q1_1_unit_tests);
 
     const run_q1_1_unit_tests = b.addRunArtifact(q1_1_unit_tests);
 
