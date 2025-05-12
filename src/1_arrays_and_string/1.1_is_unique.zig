@@ -1,38 +1,54 @@
-//! By convention, main.zig is where your main function lives in the case that
-//! you are building an executable. If you are making a library, the convention
-//! is to delete this file and start with root.zig instead.
 const std = @import("std");
 
-pub fn main() !void {
-    // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
-    std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
-
-    // stdout is for the actual output of your application, for example if you
-    // are implementing gzip, then only the compressed bytes should be sent to
-    // stdout, not any debugging messages.
-    const stdout_file = std.io.getStdOut().writer();
-    var bw = std.io.bufferedWriter(stdout_file);
-    const stdout = bw.writer();
-
-    try stdout.print("Run `zig build test` to run the tests.\n", .{});
-
-    try bw.flush(); // Don't forget to flush!
-}
-
-test "simple test" {
-    var list = std.ArrayList(i32).init(std.testing.allocator);
-    defer list.deinit(); // Try commenting this out and see if zig detects the memory leak!
-    try list.append(42);
-    try std.testing.expectEqual(@as(i32, 42), list.pop());
-}
-
-test "fuzz example" {
-    const Context = struct {
-        fn testOne(context: @This(), input: []const u8) anyerror!void {
-            _ = context;
-            // Try passing `--fuzz` to `zig build test` and see if it manages to fail this test case!
-            try std.testing.expect(!std.mem.eql(u8, "canyoufindme", input));
+// This is a simple example of a function that takes a list of items and returns
+// true if all items in the list are unique. This function uses a fixed size array
+// to keep track of which items have been seen. Since the string is Unicode, we
+// need to use Utf8View to iterate over the string and check each codepoint.
+// This function uses a hash map to keep track of which items have been seen.
+pub fn isUniqueUnicode(list: []const u8) !bool {
+    var utf8 = try std.unicode.Utf8View.init(list);
+    var iterator = utf8.iterator();
+    var seen = std.AutoHashMap(u21, void).init(std.testing.allocator);
+    defer seen.deinit();
+    while (iterator.nextCodepoint()) |codepoint| {
+        if (seen.contains(codepoint)) {
+            return false;
         }
-    };
-    try std.testing.fuzz(Context{}, Context.testOne, .{});
+        seen.put(codepoint, void{}) catch unreachable;
+    }
+    return true;
+}
+
+// This is a simple example of a function that takes a list of items and returns
+// true if all items in the list are unique. Instead of using a hash map, we
+// use a fixed size array to keep track of which items have been seen. Since the string
+// is ASCII, we can use a smaller size array.
+pub fn isUniqueASCIIWithoutHashMap(list: []const u8) bool {
+    var seen: [128]bool = [_]bool{false} ** 128;
+    for (list) |item| {
+        if (seen[item]) {
+            return false;
+        }
+        seen[item] = true;
+    }
+    return true;
+}
+
+test "ASCII" {
+    try std.testing.expect(isUniqueASCIIWithoutHashMap("numbers"));
+    try std.testing.expect(!isUniqueASCIIWithoutHashMap("hello world"));
+}
+
+test "Chinese" {
+    try std.testing.expect(try isUniqueUnicode("你好，世界！"));
+    try std.testing.expect(!(try isUniqueUnicode("你好，世界！你好，世界！")));
+}
+
+test "Japanese" {
+    try std.testing.expect(try isUniqueUnicode("こんにちは"));
+    try std.testing.expect(!(try isUniqueUnicode("こんにちはこんにちは")));
+}
+
+test "Invalid UTF-8" {
+    try std.testing.expectError(error.InvalidUtf8, isUniqueUnicode("\xed\xa0\x80"));
 }
