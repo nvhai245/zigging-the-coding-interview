@@ -61,4 +61,6 @@ pub fn build(b: *std.Build) !void {
             }
         }
     }
+
+    // TODO: Add a step to run the all the tests
 }
