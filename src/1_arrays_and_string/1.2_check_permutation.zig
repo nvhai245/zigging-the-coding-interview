@@ -1,5 +1,8 @@
 const std = @import("std");
 
+/// This function checks if two strings are permutations of each other using 2 hash tables.
+/// Overall complexity is O(n).
+/// Overall space complexity is O(n).
 pub fn checkPermutationASCII(str1: []const u8, str2: []const u8, allocator: std.mem.Allocator) !bool {
     if (str1.len != str2.len) {
         return false;
