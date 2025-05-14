@@ -27,6 +27,7 @@ pub fn build(b: *std.Build) !void {
     //     .target = target,
     //     .optimize = optimize,
     // });
+    const test_step = b.step("test", "run unit tests");
 
     // iterate over the source files in the directory
 
@@ -55,12 +56,13 @@ pub fn build(b: *std.Build) !void {
 
                     const run_file_unit_tests = b.addRunArtifact(file_unit_tests);
 
-                    const test_step = b.step(std.mem.concat(b.allocator, u8, &.{ "test-", sub_entry.name }) catch unreachable, "Run the unit tests");
+                    var splitIterator = std.mem.splitScalar(u8, sub_entry.name, '_');
+                    const questionNum = splitIterator.first();
+                    const lib_test_step = b.step(std.mem.concat(b.allocator, u8, &.{ "test_", questionNum }) catch unreachable, std.mem.concat(b.allocator, u8, &.{ "Run unit tests for ", questionNum }) catch unreachable);
+                    lib_test_step.dependOn(&run_file_unit_tests.step);
                     test_step.dependOn(&run_file_unit_tests.step);
                 }
             }
         }
     }
-
-    // TODO: Add a step to run the all the tests
 }
